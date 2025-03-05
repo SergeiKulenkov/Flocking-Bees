@@ -50,6 +50,7 @@ private:
 	void RotateImageQuad();
 
 	static constexpr ImU32 defaultColour = 4282503900; // ImVec4(220 / 255.f, 210 / 255.f, 65 / 255.f, 1.f);
+	static constexpr ImU32 separationColour = 4282473200; // ImVec4(240 / 255.f, 90 / 255.f, 65 / 255.f, 1.f);
 	static constexpr std::string_view beeImagePath = "bee.png";
 	static constexpr std::array<ImVec2, 4> m_ImageQuadUVs = { ImVec2(0, 0), ImVec2(1, 0), ImVec2(1, 1), ImVec2(0, 1) };
 

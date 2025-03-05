@@ -64,6 +64,7 @@ void Boid::Draw(ImDrawList& drawList, bool drawDebugInfo)
 	if (drawDebugInfo)
 	{
 		drawList.AddCircle(ImVec2(m_CenterPosition.x, m_CenterPosition.y), perceptionRadius, defaultColour);
+		drawList.AddCircle(ImVec2(m_CenterPosition.x, m_CenterPosition.y), separationRadius, separationColour);
 		drawList.AddLine(ImVec2(m_CenterPosition.x, m_CenterPosition.y), ImVec2(m_CenterPosition.x + m_Velocity.x, m_CenterPosition.y + m_Velocity.y), defaultColour);
 	}
 }
