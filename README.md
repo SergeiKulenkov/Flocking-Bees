@@ -4,6 +4,7 @@
 * random spawning of a few hundred boids
 * boids which are represented as images so they have to manage rotation and texture's UV
 * screen edges avoidance
+* distance calculations without unnecessary square roots
 * a few tunable parameters--weights of alignment, cohesion and separation, speed, separate perception and separation radii (or radiuses)
 
 ### ImGUI window features:
