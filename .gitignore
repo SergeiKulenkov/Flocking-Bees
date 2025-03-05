@@ -1,0 +1,7 @@
+/.vs
+/Binaries
+*.vcxproj
+*.vcxproj.user
+*.vcxproj.filters
+*.sln
+/imgui.ini
