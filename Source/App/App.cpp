@@ -423,7 +423,7 @@ void App::Init(std::string_view name)
         return;
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    m_Window = glfwCreateWindow(Width, Height, name.data(), nullptr, nullptr);
+    m_Window = glfwCreateWindow(width, height, name.data(), nullptr, nullptr);
     glfwSetWindowAttrib(m_Window, GLFW_RESIZABLE, GLFW_FALSE);
 
     if (!glfwVulkanSupported())
@@ -560,10 +560,10 @@ void App::Run()
         const bool is_minimized = (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f);
         if (!is_minimized)
         {
-            wd->ClearValue.color.float32[0] = ClearColour.x * ClearColour.w;
-            wd->ClearValue.color.float32[1] = ClearColour.y * ClearColour.w;
-            wd->ClearValue.color.float32[2] = ClearColour.z * ClearColour.w;
-            wd->ClearValue.color.float32[3] = ClearColour.w;
+            wd->ClearValue.color.float32[0] = clearColour.x * clearColour.w;
+            wd->ClearValue.color.float32[1] = clearColour.y * clearColour.w;
+            wd->ClearValue.color.float32[2] = clearColour.z * clearColour.w;
+            wd->ClearValue.color.float32[3] = clearColour.w;
             FrameRender(wd, draw_data);
             FramePresent(wd);
         }
