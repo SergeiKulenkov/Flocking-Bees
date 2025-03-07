@@ -269,7 +269,7 @@ void BoidsManager::SeparatePredators(Predator& current)
 
 	if (numberOfNeighbours)
 	{
-		separation /= numberOfNeighbours;
+		separation *= numberOfNeighbours;
 		separation = glm::normalize(separation) * Predator::maxSpeed;
 		separation -= current.GetVelocity();
 		current.UpdateAcceleration(separation * Predator::separationWeight);
