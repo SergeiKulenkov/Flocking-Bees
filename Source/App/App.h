@@ -6,7 +6,7 @@
 
 #include "imgui_impl_vulkan.h"
 
-#include "Object.h"
+#include "DrawableObject.h"
 
 struct GLFWwindow;
 

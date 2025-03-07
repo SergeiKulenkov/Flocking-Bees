@@ -20,26 +20,59 @@ void BoidsManager::Init(const ImVec2& windowSize)
 	m_WindowFlags |= ImGuiWindowFlags_NoResize;
 	m_WindowFlags |= ImGuiWindowFlags_NoCollapse;
 
-	uint16_t id = 0;
 	glm::vec2 position;
 	glm::vec2 direction;
-	const glm::vec2 boidSize = m_Boids[0].GetSize(); // they all have the same size
+	glm::vec2 size;
+	uint16_t id = 0;
 
-	for (Boid& boid : m_Boids)
+	// boids
 	{
-		position = glm::vec2(Random::RandomInRange(boidSize.x, m_BoidsBoundaries.x - boidSize.x),
-							Random::RandomInRange(boidSize.y, m_BoidsBoundaries.y - boidSize.y));
-		direction = glm::vec2(Random::RandomInRange(-1.f, 1.f), Random::RandomInRange(-1.f, 1.f));
+		for (Boid& boid : m_Boids)
+		{
+			size = boid.GetSize();
+			position = glm::vec2(Random::RandomInRange(size.x, m_BoidsBoundaries.x - size.x),
+								Random::RandomInRange(size.y, m_BoidsBoundaries.y - size.y));
+			direction = glm::vec2(Random::RandomInRange(-1.f, 1.f), Random::RandomInRange(-1.f, 1.f));
 
-		boid.Init(position, direction, id);
-		m_FlockingData[id].id = id;
-		id++;
+			boid.Init(position, direction, id);
+			m_FlockingData[id].id = id;
+			id++;
+		}
+	}
+
+	// predators
+	{
+		id = 0;
+		for (Predator& predator : m_Predators)
+		{
+			size = predator.GetSize();
+			position = glm::vec2(Random::RandomInRange(size.x, m_BoidsBoundaries.x - size.x),
+								Random::RandomInRange(size.y, m_BoidsBoundaries.y - size.y));
+			direction = glm::vec2(Random::RandomInRange(-1.f, 1.f), Random::RandomInRange(-1.f, 1.f));
+
+			predator.Init(position, direction, id);
+			m_PredatorsData[id].id = id;
+			id++;
+		}
 	}
 }
 
 void BoidsManager::Update(float deltaTime)
 {
 	const auto start = std::chrono::high_resolution_clock::now();
+
+	for (uint8_t index = 0; index < m_PredatorsData.size(); index++)
+	{
+		m_PredatorsData[index].position = m_Predators[index].GetPosition();
+		m_PredatorsData[index].velocity = m_Predators[index].GetVelocity();
+	}
+
+	for (Predator& predator : m_Predators)
+	{
+		SeparatePredators(predator);
+		CheckBoundaries(predator);
+		predator.Update(deltaTime);
+	}
 
 	for (uint16_t index = 0; index < m_FlockingData.size(); index++)
 	{
@@ -50,6 +83,7 @@ void BoidsManager::Update(float deltaTime)
 	for (Boid& boid : m_Boids)
 	{
 		Flock(boid);
+		AvoidPredators(boid);
 		CheckBoundaries(boid);
 		boid.Update(deltaTime);
 	}
@@ -66,6 +100,10 @@ void BoidsManager::Draw()
 		{
 			boid.Draw(*m_DrawList, m_DrawDebugInfo);
 		}
+		for (Predator& predator : m_Predators)
+		{
+			predator.Draw(*m_DrawList, m_DrawDebugInfo);
+		}
 	}
 
 	ImGui::SetNextWindowPos(ImVec2(m_BoidsBoundaries.x, 0));
@@ -74,12 +112,14 @@ void BoidsManager::Draw()
 
 	ImGui::Checkbox(drawDebugInfoText.data(), &m_DrawDebugInfo);
 	ImGui::Text(numberOfBoidsText.data(), numberOfBoids);
+	ImGui::Text(numberOfPredatorsText.data(), numberOfPredators);
 	ImGui::Text(updateTimeText.data(), m_Duration.count() * 1000.f);
 
 	ImGui::Spacing();
 	ImGui::Spacing();
 	ImGui::Text(perceptionRadiusText.data(), Boid::perceptionRadius);
 	ImGui::Text(separationRadiusText.data(), Boid::separationRadius);
+	ImGui::Text(predatorAvoidanceRadiusText.data(), Boid::predatorAvoidanceRadius);
 
 	ImGui::Text(alignmentWeightText.data(), Boid::allignmentWeight);
 	ImGui::Text(cohesionWeightText.data(), Boid::cohesionWeight);
@@ -90,33 +130,36 @@ void BoidsManager::Draw()
 	ImGui::End();
 }
 
-void BoidsManager::CheckBoundaries(Boid& boid)
+void BoidsManager::CheckBoundaries(MovingObject& object)
 {
-	const glm::vec2 position = boid.GetPosition();
+	const glm::vec2 position = object.GetPosition();
+	glm::vec2 avoidanceDirection = glm::vec2(0, 0);
 
 	if (position.x < edgeMargin)
 	{
-		boid.UpdateVelocity(glm::vec2(Random::RandomInRange(Boid::minEdgeAvoidanceSpeed, Boid::maxEdgeAvoidanceSpeed), 0));
+		avoidanceDirection.x = 1;
 	}
 	else if (position.x > m_BoidsBoundaries.x - edgeMargin)
 	{
-		boid.UpdateVelocity(glm::vec2(-Random::RandomInRange(Boid::minEdgeAvoidanceSpeed, Boid::maxEdgeAvoidanceSpeed), 0));
+		avoidanceDirection.x = -1;
 	}
 
 	if (position.y < edgeMargin)
 	{
-		boid.UpdateVelocity(glm::vec2(0, Random::RandomInRange(Boid::minEdgeAvoidanceSpeed, Boid::maxEdgeAvoidanceSpeed)));
+		avoidanceDirection.y = 1;
 	}
 	else if (position.y > m_BoidsBoundaries.y - edgeMargin)
 	{
-		boid.UpdateVelocity(glm::vec2(0, -Random::RandomInRange(Boid::minEdgeAvoidanceSpeed, Boid::maxEdgeAvoidanceSpeed)));
+		avoidanceDirection.y = -1;
 	}
+
+	object.AvoidBoundaries(avoidanceDirection);
 }
 
 void BoidsManager::Flock(Boid& current)
 {
-	static constexpr float perceptionRadiusSquared = Boid::perceptionRadius * Boid::perceptionRadius;
-	static constexpr float separationRadiusSquared = Boid::separationRadius * Boid::separationRadius;
+	const float perceptionRadiusSquared = (Boid::perceptionRadius + current.GetRadius()) * (Boid::perceptionRadius + current.GetRadius());
+	const float separationRadiusSquared = (Boid::separationRadius + current.GetRadius()) * (Boid::separationRadius + current.GetRadius());
 	const glm::vec2 currentPosition = current.GetPosition();
 	const uint16_t currentId = current.GetId();
 
@@ -126,7 +169,7 @@ void BoidsManager::Flock(Boid& current)
 	glm::vec2 separation = glm::vec2(0, 0);
 	glm::vec2 positionDifference = glm::vec2(0, 0);
 
-	for (const FlockingData& neighbour : m_FlockingData)
+	for (const MovingObjectData& neighbour : m_FlockingData)
 	{
 		if (neighbour.id != currentId)
 		{
@@ -168,5 +211,67 @@ void BoidsManager::Flock(Boid& current)
 			separation -= currentVelocity;
 			current.UpdateAcceleration(separation * Boid::separationWeight);
 		}
+	}
+}
+
+void BoidsManager::AvoidPredators(Boid& current)
+{
+	const float avoidanceRadiusSquared = (Boid::predatorAvoidanceRadius + current.GetRadius()) * (Boid::predatorAvoidanceRadius + current.GetRadius());
+	const glm::vec2 currentPosition = current.GetPosition();
+	uint16_t numberOfPredators = 0;
+	glm::vec2 positionDifference = glm::vec2(0, 0);
+	glm::vec2 separation = glm::vec2(0, 0);
+
+	for (const Predator& predator : m_Predators)
+	{
+		positionDifference = currentPosition - predator.GetPosition();
+		float distance = glm::dot(positionDifference, positionDifference);
+
+		if (distance < avoidanceRadiusSquared)
+		{
+			separation += positionDifference / distance;
+			numberOfPredators++;
+		}
+	}
+
+	if (numberOfPredators > 0)
+	{
+		separation *= numberOfPredators;
+		separation = glm::normalize(separation);
+		current.UpdateVelocity(separation * Boid::predatorAvoidanceSpeed);
+	}
+}
+
+void BoidsManager::SeparatePredators(Predator& current)
+{
+	const float separationRadiusSquared = (Predator::separationRadius + current.GetRadius()) * (Predator::separationRadius + current.GetRadius());
+	const glm::vec2 currentPosition = current.GetPosition();
+	const uint16_t currentId = current.GetId();
+
+	uint8_t numberOfNeighbours = 0;
+	glm::vec2 positionDifference = glm::vec2(0, 0);
+	glm::vec2 separation = glm::vec2(0, 0);
+
+	for (const MovingObjectData& neighbour : m_PredatorsData)
+	{
+		if (currentId != neighbour.id)
+		{
+			positionDifference = currentPosition - neighbour.position;
+			float distance = glm::dot(positionDifference, positionDifference);
+
+			if (distance < separationRadiusSquared)
+			{
+				separation += positionDifference / distance;
+				numberOfNeighbours++;
+			}
+		}
+	}
+
+	if (numberOfNeighbours)
+	{
+		separation /= numberOfNeighbours;
+		separation = glm::normalize(separation) * Predator::maxSpeed;
+		separation -= current.GetVelocity();
+		current.UpdateAcceleration(separation * Predator::separationWeight);
 	}
 }

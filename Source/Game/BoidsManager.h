@@ -2,13 +2,14 @@
 #include <array>
 #include <chrono>
 
-#include "../App/Object.h"
+#include "../App/DrawableObject.h"
 
 #include "Boid.h"
+#include "Predator.h"
 
 ////////////////////
 
-struct FlockingData
+struct MovingObjectData
 {
 	uint16_t id = 0;
 	glm::vec2 position = glm::vec2(0, 0);
@@ -29,20 +30,25 @@ public:
 	virtual void Draw() override;
 
 private:
-	void CheckBoundaries(Boid& boid);
+	void CheckBoundaries(MovingObject& object);
 	void Flock(Boid& current);
+	void AvoidPredators(Boid& current);
+	void SeparatePredators(Predator& current);
 
-	static constexpr uint16_t numberOfBoids = 200;
+	static constexpr uint16_t numberOfBoids = 100;
+	static constexpr uint8_t numberOfPredators = 3;
 	static constexpr float windowWidth = 200.f;
-	static constexpr float edgeMargin = 30.f;
+	static constexpr float edgeMargin = 60.f;
 
 	static constexpr std::string_view windowTitle = "Boids Manager Stats";
 	static constexpr std::string_view drawDebugInfoText = "Draw Debug Info";
 	static constexpr std::string_view numberOfBoidsText = "Number of Bodis = %d";
+	static constexpr std::string_view numberOfPredatorsText = "Number of Predators = %d";
 	static constexpr std::string_view updateTimeText = "Update Time = %.2f";
 
 	static constexpr std::string_view perceptionRadiusText = "Perception Radius = %.2f";
 	static constexpr std::string_view separationRadiusText = "Separation Radius = %.2f";
+	static constexpr std::string_view predatorAvoidanceRadiusText = "Predator Avoidance = %.2f";
 	static constexpr std::string_view alignmentWeightText = "Alignment Weight = %.2f";
 	static constexpr std::string_view cohesionWeightText = "Cohesion Weight = %.2f";
 	static constexpr std::string_view separationWeightText = "Separation Weight = %.2f";
@@ -52,7 +58,10 @@ private:
 	ImDrawList* m_DrawList = nullptr;
 
 	std::array<Boid, numberOfBoids> m_Boids;
-	std::array<FlockingData, numberOfBoids> m_FlockingData;
+	std::array<MovingObjectData, numberOfBoids> m_FlockingData;
+	// probably better to move predators to a separate PredatorManager
+	std::array<Predator, numberOfPredators> m_Predators;
+	std::array<MovingObjectData, numberOfPredators> m_PredatorsData;	
 
 	ImVec2 m_BoidsBoundaries = ImVec2(0, 0);
 	ImGuiWindowFlags m_WindowFlags = 0;
