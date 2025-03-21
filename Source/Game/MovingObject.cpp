@@ -10,11 +10,6 @@ MovingObject::MovingObject(std::string_view path, float minSpeed, float maxSpeed
 	m_HalfSize = glm::vec2(m_Size.x / 2.f, m_Size.y / 2.f);
 }
 
-MovingObject::~MovingObject()
-{
-	m_Image = nullptr;
-}
-
 void MovingObject::Init(const glm::vec2& position, const glm::vec2& direction, const uint16_t id)
 {
 	m_CenterPosition = position;

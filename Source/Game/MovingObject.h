@@ -28,7 +28,7 @@ class MovingObject : public IMovableObject
 public:
 	MovingObject(std::string_view path, float minSpeed, float maxSpeed, float boundariesAvoidanceSpeed);
 
-	~MovingObject();
+	virtual ~MovingObject() {}
 
 	bool operator==(const MovingObject& other) const
 	{
